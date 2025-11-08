@@ -39,7 +39,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { KonvaCanvas } from '@/components/KonvaCanvas';
-import { detectObjects, segmentImage, smartSegment, parseExtractionPrompt, contentAwareFill, localContentAwareFill, createImprovedMask } from '@/lib/api';
+import { detectObjects, segmentImage, smartSegment, parseSegmentationPrompt, contentAwareFill, localContentAwareFill, createImprovedMask } from '@/lib/api';
 import { exportToPsd, downloadPsd } from '@/lib/psdExport';
 
 type SelectionMode = 'select' | 'lasso';
@@ -68,7 +68,7 @@ interface HistoryState {
   layers: Layer[];
 }
 
-export default function ExtractArt() {
+export default function SegmentArt() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('select');
   const [scale, setScale] = useState(1);
@@ -291,7 +291,7 @@ export default function ExtractArt() {
     setUploadedImage(dataUrl);
   };
 
-  const handleExtract = (dataUrl: string, type: string, position?: { x: number; y: number; width: number; height: number }) => {
+  const handleSegment = (dataUrl: string, type: string, position?: { x: number; y: number; width: number; height: number }) => {
     // Save current state before making changes
     saveToHistory();
 
@@ -701,19 +701,19 @@ export default function ExtractArt() {
     setIsProcessing(true);
     try {
       const prompt = bgRemovalPrompt.toLowerCase().trim();
-      const regionsToExtract = new Set<string>();
+      const regionsToSegment = new Set<string>();
 
       // Get available labels from detected regions
       const availableLabels = detectedRegions.map(r => r.label);
 
       // STEP 1: Try OpenAI-powered parsing first
       console.log('Attempting OpenAI-powered prompt parsing...');
-      const aiResult = await parseExtractionPrompt(prompt, availableLabels);
+      const aiResult = await parseSegmentationPrompt(prompt, availableLabels);
 
       if (aiResult.confidence !== 'fallback' && aiResult.labels.length > 0) {
         // OpenAI successfully parsed the prompt
         console.log(`OpenAI parsed successfully (confidence: ${aiResult.confidence}):`, aiResult.labels);
-        aiResult.labels.forEach(label => regionsToExtract.add(label));
+        aiResult.labels.forEach(label => regionsToSegment.add(label));
 
         toast({
           title: "AI Understanding",
@@ -726,8 +726,8 @@ export default function ExtractArt() {
         // Check for exact matches in FEATURE_GROUPS
         Object.entries(FEATURE_GROUPS).forEach(([keyword, labels]) => {
           if (prompt.includes(keyword)) {
-            labels.forEach(label => regionsToExtract.add(label));
-            console.log(`Matched keyword "${keyword}" → extracting:`, labels);
+            labels.forEach(label => regionsToSegment.add(label));
+            console.log(`Matched keyword "${keyword}" → segmenting:`, labels);
           }
         });
 
@@ -737,7 +737,7 @@ export default function ExtractArt() {
           if (prompt.includes(regionLabel) ||
               prompt.includes(regionLabel.replace('_', ' ')) ||
               prompt.includes(regionLabel.replace('_', ''))) {
-            regionsToExtract.add(region.label);
+            regionsToSegment.add(region.label);
             console.log(`Direct match: "${regionLabel}"`);
           }
         });
@@ -745,7 +745,7 @@ export default function ExtractArt() {
 
       // Find matching regions
       const matchedRegions = detectedRegions.filter(region =>
-        regionsToExtract.has(region.label)
+        regionsToSegment.has(region.label)
       );
 
       if (matchedRegions.length === 0) {
@@ -757,25 +757,25 @@ export default function ExtractArt() {
         return;
       }
 
-      console.log(`Extracting ${matchedRegions.length} regions:`, matchedRegions.map(r => r.label));
+      console.log(`Segmenting ${matchedRegions.length} regions:`, matchedRegions.map(r => r.label));
 
-      // Extract each matched region using the existing extraction method
+      // Segment each matched region using the existing segmentation method
       saveToHistory();
 
-      const extractedCount = matchedRegions.length;
+      const segmentedCount = matchedRegions.length;
       for (const region of matchedRegions) {
         const regionIndex = detectedRegions.indexOf(region);
         if (regionIndex !== -1) {
-          // Trigger extraction via custom event (same as click extraction)
-          window.dispatchEvent(new CustomEvent('extractRegion', { detail: regionIndex }));
-          // Small delay between extractions for smooth UX
+          // Trigger segmentation via custom event (same as click segmentation)
+          window.dispatchEvent(new CustomEvent('segmentRegion', { detail: regionIndex }));
+          // Small delay between segmentations for smooth UX
           await new Promise(resolve => setTimeout(resolve, 50));
         }
       }
 
       toast({
         title: "Success",
-        description: `Extracted ${extractedCount} feature(s): ${matchedRegions.map(r => r.label.replace('_', ' ')).join(', ')}`
+        description: `Segmented ${segmentedCount} feature(s): ${matchedRegions.map(r => r.label.replace('_', ' ')).join(', ')}`
       });
     } catch (error) {
       console.error('Prompt extraction error:', error);
@@ -832,12 +832,12 @@ export default function ExtractArt() {
     }
   };
 
-  const handleExtractSelection = () => {
-    if ((window as any).extractLassoSelection) {
-      (window as any).extractLassoSelection();
+  const handleSegmentSelection = () => {
+    if ((window as any).segmentLassoSelection) {
+      (window as any).segmentLassoSelection();
       toast({
         title: "Success",
-        description: "Selection extracted successfully"
+        description: "Selection segmented successfully"
       });
     }
   };
@@ -846,9 +846,9 @@ export default function ExtractArt() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Extract Art Assets</CardTitle>
+          <CardTitle>Segment Art Assets</CardTitle>
           <CardDescription>
-            Upload images and extract specific regions or remove background objects
+            Upload images and segment specific regions or remove background objects
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -960,7 +960,7 @@ export default function ExtractArt() {
                 </div>
 
                 <div className="border-t mt-4 pt-4">
-                  <Label className="mb-2 block text-xs">Prompt Extraction</Label>
+                  <Label className="mb-2 block text-xs">Prompt Segmentation</Label>
                   <div className="space-y-2">
                     <Textarea
                       placeholder="e.g., 'eyes', 'face without hair'"
@@ -977,12 +977,12 @@ export default function ExtractArt() {
                       {isProcessing ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Extracting...
+                          Segmenting...
                         </>
                       ) : (
                         <>
                           <Scissors className="mr-2 h-4 w-4" />
-                          Extract
+                          Segment
                         </>
                       )}
                     </Button>
@@ -1080,13 +1080,13 @@ export default function ExtractArt() {
                   <div className="border-t mt-4 pt-4">
                     <Label className="mb-2 block">Lasso Selection</Label>
                     <Button
-                      onClick={handleExtractSelection}
+                      onClick={handleSegmentSelection}
                       disabled={!hasSelection}
                       className="w-full"
                       variant="default"
                     >
                       <Download className="mr-2 h-4 w-4" />
-                      Extract Selection
+                      Segment Selection
                     </Button>
                   </div>
                 )}
@@ -1239,7 +1239,7 @@ export default function ExtractArt() {
                       height={600}
                       mode={selectionMode}
                       image={uploadedImage}
-                      onExtract={handleExtract}
+                      onSegment={handleSegment}
                       onImageUpdate={handleImageUpdate}
                       featherAmount={featherAmount}
                       detectedRegions={detectedRegions}
@@ -1249,7 +1249,7 @@ export default function ExtractArt() {
                       brushColor="#ffffff"
                       opacity={1}
                       onSelectionChange={setHasSelection}
-                      onExtractSelection={handleExtractSelection}
+                      onSegmentSelection={handleSegmentSelection}
                       layers={layers}
                       baseLayerVisible={baseLayerVisible}
                     />

@@ -1,28 +1,28 @@
-# 🎨 Extract Art - Professional Image Extraction Tool
+# 🎨 Segment Art - Professional Image Segmentation Tool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18.3.1-blue.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5.3-blue.svg)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.4.8-646CFF.svg)](https://vitejs.dev/)
 
-Professional-grade image extraction tool with **AI-powered smart segmentation** that automatically detects image type (face/landscape) and uses the appropriate model for pixel-perfect extraction.
+Professional-grade image segmentation tool with **AI-powered smart segmentation** that automatically detects image type (face/landscape) and uses the appropriate model for pixel-perfect segmentation.
 
 ## ✨ Key Features
 
 ### 🤖 Smart Segmentation (NEW!)
 - **Automatic Detection**: AI determines if image is a face/portrait or landscape/objects
-- **Face Mode**: Uses face parsing for precise facial feature extraction (eyes, nose, hair, etc.)
+- **Face Mode**: Uses face parsing for precise facial feature segmentation (eyes, nose, hair, etc.)
 - **Landscape Mode**: Uses panoptic segmentation for objects (sky, trees, buildings, etc.)
 - **Visual Feedback**: Mode badges and notifications showing active detection
 
 ### 🎯 Selection Tools
-- **Hover Preview**: AI-powered region detection with click-to-extract
+- **Hover Preview**: AI-powered region detection with click-to-segment
 - **Lasso Tool**: Freehand selection with adjustable feathering (0-50px)
 - **Manual Tools**: Rectangle, Circle, Brush, Eraser
-- **Smart Extraction**: Natural language prompts ("extract eyes", "remove background")
+- **Smart Segmentation**: Natural language prompts ("segment eyes", "remove background")
 
 ### 📊 Layer Management
-- **Photoshop-style Layers**: Multiple extracted regions as separate layers
+- **Photoshop-style Layers**: Multiple segmented regions as separate layers
 - **Layer Operations**: Show/hide, merge, delete, reorder
 - **Batch Export**: Save all layers as PNG or export as PSD file
 - **Undo/Redo**: Full history tracking
@@ -43,8 +43,8 @@ Professional-grade image extraction tool with **AI-powered smart segmentation** 
 
 ```bash
 # Clone the repository
-git clone https://github.com/rahulyoffc-work/Extraction-model.git
-cd Extraction-model
+git clone https://github.com/rahulyoffc-work/Segmentation-Art.git
+cd Segmentation-Art
 
 # Navigate to demo app
 cd demo-app
@@ -78,25 +78,25 @@ VITE_OPENAI_API_KEY=sk_your_key_here
 2. **Detect Regions**: Click "Detect Regions" button
    - 👤 Face images: Detects 14 facial features
    - 🏞️ Landscape images: Detects objects and scenes
-3. **Extract**: Hover and click regions, or use manual tools
+3. **Segment**: Hover and click regions, or use manual tools
 4. **Manage Layers**: Toggle visibility, merge, or delete layers
 5. **Export**: Download as PNG or PSD with all layers
 
 ### Smart Segmentation Examples
 
-| Image Type | Detected Mode | Features Extracted |
+| Image Type | Detected Mode | Features Segmented |
 |------------|---------------|-------------------|
 | Portrait Photo | 👤 Face Mode | skin, eyes, nose, hair, ears, mouth (14 parts) |
 | Nature Scene | 🏞️ Landscape Mode | sky, trees, grass, water, mountains |
 | Group Photo | 🏞️ Landscape Mode | multiple person instances + background |
 | Street Scene | 🏞️ Landscape Mode | buildings, roads, cars, pedestrians, sky |
 
-### Prompt Extraction
+### Prompt Segmentation
 
-Use natural language to extract multiple features:
-- `"eyes"` → Extracts left_eye + right_eye
-- `"face without hair"` → Extracts all facial features except hair
-- `"sky and trees"` → Extracts sky and all tree instances
+Use natural language to segment multiple features:
+- `"eyes"` → Segments left_eye + right_eye
+- `"face without hair"` → Segments all facial features except hair
+- `"sky and trees"` → Segments sky and all tree instances
 
 ## 🏗️ Architecture
 
@@ -139,7 +139,7 @@ demo-app/
 ### Prompt Understanding
 - **Model**: GPT-3.5-turbo / GPT-4
 - **Provider**: OpenAI
-- **Purpose**: Parse natural language extraction prompts
+- **Purpose**: Parse natural language segmentation prompts
 - **Fallback**: Keyword matching
 
 ### Background Removal
@@ -203,13 +203,13 @@ graph TD
     E --> G[Panoptic Segmentation]
     F --> H[14 Face Parts]
     G --> I[Object Instances]
-    H --> J[Hover & Extract]
+    H --> J[Hover & Segment]
     I --> J
 ```
 
 ### Layer System
 - **Base Layer**: Original uploaded image
-- **Extracted Layers**: Individual regions/objects
+- **Segmented Layers**: Individual regions/objects
 - **Layer Props**: Name, visibility, position, thumbnail
 - **Operations**: Merge, delete, download, export PSD
 
@@ -224,7 +224,7 @@ graph TD
 
 - **Image Loading**: < 1 second
 - **AI Detection**: 2-5 seconds
-- **Region Extraction**: < 500ms
+- **Region Segmentation**: < 500ms
 - **PSD Export**: 1-3 seconds
 - **Supported Sizes**: Up to 4K (4096x4096)
 
@@ -260,7 +260,7 @@ Contributions are welcome! Please:
 ## 🔮 Future Enhancements
 
 - [ ] Instance segmentation for multiple objects of same type
-- [ ] Video frame extraction and processing
+- [ ] Video frame segmentation and processing
 - [ ] Batch processing for multiple images
 - [ ] Custom model fine-tuning
 - [ ] Collaborative editing features
@@ -282,7 +282,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support & Contact
 
-- **Issues**: [GitHub Issues](https://github.com/rahulyoffc-work/Extraction-model/issues)
+- **Issues**: [GitHub Issues](https://github.com/rahulyoffc-work/Segmentation-Art/issues)
 - **Documentation**: See [EXTRACT_ART_DEMO_DOCUMENTATION.txt](./EXTRACT_ART_DEMO_DOCUMENTATION.txt)
 - **Email**: [Your contact email]
 

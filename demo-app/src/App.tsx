@@ -1,4 +1,4 @@
-import ExtractArt from './components/ExtractArt';
+import SegmentArt from './components/SegmentArt';
 import { Toaster } from './components/ui/toaster';
 import { Scissors } from 'lucide-react';
 
@@ -12,15 +12,15 @@ function App() {
               <Scissors className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-xl font-bold">Extract Art</h1>
-              <p className="text-xs text-muted-foreground">Professional Image Extraction Tool</p>
+              <h1 className="text-xl font-bold">Segment Art</h1>
+              <p className="text-xs text-muted-foreground">Professional Image Segmentation Tool</p>
             </div>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto p-6">
-        <ExtractArt />
+        <SegmentArt />
       </main>
 
       <Toaster />

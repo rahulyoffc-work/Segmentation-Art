@@ -58,7 +58,7 @@ interface KonvaCanvasProps {
   mode: 'select' | 'rectangle' | 'lasso' | 'brush' | 'circle' | 'eraser';
   opacity: number;
   image: string | null;
-  onExtract: (dataUrl: string, type: string, position?: { x: number; y: number; width: number; height: number }) => void;
+  onSegment: (dataUrl: string, type: string, position?: { x: number; y: number; width: number; height: number }) => void;
   onImageUpdate?: (dataUrl: string) => void;
   brushType?: 'normal' | 'soft' | 'stroke';
   brushHardness?: number;
@@ -68,7 +68,7 @@ interface KonvaCanvasProps {
   hoveredRegion?: number | null;
   onHoverRegion?: (index: number | null) => void;
   onSelectionChange?: (hasSelection: boolean) => void;
-  onExtractSelection?: () => void;
+  onSegmentSelection?: () => void;
   layers?: Layer[];
   baseLayerVisible?: boolean;
 }
@@ -81,7 +81,7 @@ export function KonvaCanvas({
   mode,
   opacity,
   image,
-  onExtract,
+  onSegment,
   onImageUpdate,
   brushType = 'normal',
   brushHardness = 0.5,
@@ -91,7 +91,7 @@ export function KonvaCanvas({
   hoveredRegion = null,
   onHoverRegion,
   onSelectionChange,
-  onExtractSelection,
+  onSegmentSelection,
   layers = [],
   baseLayerVisible = true
 }: KonvaCanvasProps) {
@@ -229,17 +229,17 @@ export function KonvaCanvas({
     }
   }, [detectedRegions]);
 
-  // Listen for extract region event
+  // Listen for segment region event
   useEffect(() => {
-    const handleExtractEvent = (e: any) => {
+    const handleSegmentEvent = (e: any) => {
       const regionIndex = e.detail;
       if (typeof regionIndex === 'number') {
-        extractRegion(regionIndex);
+        segmentRegion(regionIndex);
       }
     };
 
-    window.addEventListener('extractRegion', handleExtractEvent);
-    return () => window.removeEventListener('extractRegion', handleExtractEvent);
+    window.addEventListener('segmentRegion', handleSegmentEvent);
+    return () => window.removeEventListener('segmentRegion', handleSegmentEvent);
   }, [detectedRegions, maskImages, imageElement, imageSize]);
 
   // Load layer images when layers change
@@ -327,18 +327,18 @@ export function KonvaCanvas({
     }
   };
 
-  const extractRegion = (regionIndex: number) => {
+  const segmentRegion = (regionIndex: number) => {
     const region = detectedRegions[regionIndex];
     const maskImg = maskImages.get(regionIndex);
 
     if (!region || !imageElement || !maskImg) {
-      console.error('Cannot extract region: missing data');
+      console.error('Cannot segment region: missing data');
       return;
     }
 
-    console.log(`[Extract] Extracting "${region.label}"...`);
-    console.log(`[Extract] Original image size: ${imageElement.width}x${imageElement.height}`);
-    console.log(`[Extract] Mask size: ${maskImg.width}x${maskImg.height}`);
+    console.log(`[Segment] Segmenting "${region.label}"...`);
+    console.log(`[Segment] Original image size: ${imageElement.width}x${imageElement.height}`);
+    console.log(`[Segment] Mask size: ${maskImg.width}x${maskImg.height}`);
 
     // Use ORIGINAL image dimensions, not scaled display size
     const originalWidth = imageElement.width;
@@ -373,7 +373,7 @@ export function KonvaCanvas({
       if (r > 128) whitePixels++;
       else blackPixels++;
     }
-    console.log(`[Extract] Mask analysis for "${region.label}": white=${whitePixels}, black=${blackPixels}`);
+    console.log(`[Segment] Mask analysis for "${region.label}": white=${whitePixels}, black=${blackPixels}`);
 
     // Auto-detect if mask appears inverted (background labels should have more white than black)
     const isBackgroundRegion = region.label.toLowerCase().includes('background') ||
@@ -381,7 +381,7 @@ export function KonvaCanvas({
                                 whitePixels > blackPixels * 3; // If >75% white, likely background
 
     if (isBackgroundRegion) {
-      console.log(`[Extract] ⚠ Detected inverted mask for "${region.label}" - will invert logic`);
+      console.log(`[Segment] ⚠ Detected inverted mask for "${region.label}" - will invert logic`);
     }
 
     // Apply mask as alpha channel (only keep pixels where mask matches the region type)
@@ -413,13 +413,13 @@ export function KonvaCanvas({
       if (imageData.data[i] === 0) transparentPixels++;
       else opaquePixels++;
     }
-    console.log(`[Extract] Result: transparent=${transparentPixels}, opaque=${opaquePixels}`);
+    console.log(`[Segment] Result: transparent=${transparentPixels}, opaque=${opaquePixels}`);
 
     ctx.putImageData(imageData, 0, 0);
 
     // Export the FULL-SIZE layer (like Photoshop) - region stays in original position
-    console.log(`[Extract] ✓ Extracted "${region.label}" (full layer: ${originalWidth}x${originalHeight}, ${opaquePixels} visible pixels)`);
-    onExtract(canvas.toDataURL(), region.label, {
+    console.log(`[Segment] ✓ Segmented "${region.label}" (full layer: ${originalWidth}x${originalHeight}, ${opaquePixels} visible pixels)`);
+    onSegment(canvas.toDataURL(), region.label, {
       x: 0,
       y: 0,
       width: originalWidth,
@@ -457,7 +457,7 @@ export function KonvaCanvas({
       }
 
       mainCtx.putImageData(mainImageData, 0, 0);
-      console.log(`[Extract] ✓ Updated main canvas - made "${region.label}" transparent`);
+      console.log(`[Segment] ✓ Updated main canvas - made "${region.label}" transparent`);
 
       // Update the main image
       onImageUpdate(mainCanvas.toDataURL());
@@ -550,7 +550,7 @@ export function KonvaCanvas({
         ];
       });
 
-      // Extract mask after each stroke
+      // Segment mask after each stroke
       if (brushLayerRef.current) {
         const canvas = brushLayerRef.current.getCanvas()._canvas;
         const maskCanvas = document.createElement('canvas');
@@ -561,7 +561,7 @@ export function KonvaCanvas({
           ctx.fillStyle = 'black';
           ctx.fillRect(0, 0, width, height);
           ctx.drawImage(canvas, 0, 0);
-          onExtract(maskCanvas.toDataURL(), 'mask');
+          onSegment(maskCanvas.toDataURL(), 'mask');
         }
       }
     }
@@ -573,21 +573,21 @@ export function KonvaCanvas({
     currentLine.current = null;
   };
 
-  // Extract selection function (called externally)
+  // Segment selection function (called externally)
   useEffect(() => {
-    if (onExtractSelection) {
-      (window as any).extractLassoSelection = () => {
+    if (onSegmentSelection) {
+      (window as any).segmentLassoSelection = () => {
         if (!selection || !selection.points || selection.points.length < 6) {
           console.warn('No valid lasso selection');
           return;
         }
 
-        extractLassoSelection();
+        segmentLassoSelection();
       };
     }
-  }, [selection, onExtractSelection]);
+  }, [selection, onSegmentSelection]);
 
-  const extractLassoSelection = () => {
+  const segmentLassoSelection = () => {
     if (!selection || !selection.points || !imageElement) return;
 
     const { offsetX, offsetY } = getImagePosition();
@@ -600,7 +600,7 @@ export function KonvaCanvas({
     const scaleX = originalWidth / imageSize.width;
     const scaleY = originalHeight / imageSize.height;
 
-    console.log(`[Extract] Lasso extraction - Display: ${imageSize.width}x${imageSize.height}, Original: ${originalWidth}x${originalHeight}, Scale: ${scaleX}x${scaleY}`);
+    console.log(`[Segment] Lasso segmentation - Display: ${imageSize.width}x${imageSize.height}, Original: ${originalWidth}x${originalHeight}, Scale: ${scaleX}x${scaleY}`);
 
     // Create mask canvas at ORIGINAL size
     const maskCanvas = document.createElement('canvas');
@@ -655,8 +655,8 @@ export function KonvaCanvas({
     resultCtx.putImageData(imageData, 0, 0);
 
     // Export the full-size image with transparency outside selection
-    console.log(`[Extract] ✓ Lasso selection extracted (full layer: ${originalWidth}x${originalHeight})`);
-    onExtract(resultCanvas.toDataURL(), 'Lasso Selection', {
+    console.log(`[Segment] ✓ Lasso selection segmented (full layer: ${originalWidth}x${originalHeight})`);
+    onSegment(resultCanvas.toDataURL(), 'Lasso Selection', {
       x: 0,
       y: 0,
       width: originalWidth,

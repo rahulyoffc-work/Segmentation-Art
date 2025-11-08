@@ -5,7 +5,7 @@ const PHOTOROOM_API_URL = 'https://sdk.photoroom.com/v1/segment';
 const PHOTOROOM_API_KEY = import.meta.env.VITE_PHOTOROOM_API_KEY;
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 
-// Model Endpoints - Only models actually used in Extract Art feature
+// Model Endpoints - Only models actually used in Segment Art feature
 const MODEL_ENDPOINTS = {
   'object-detection': 'facebook/detr-resnet-50',
   'face-parsing': 'jonathandinu/face-parsing',
@@ -1292,8 +1292,8 @@ export async function removeBackground(imageBlob: Blob): Promise<string> {
   }
 }
 
-// Smart extraction prompt parsing with OpenAI
-export async function parseExtractionPrompt(
+// Smart segmentation prompt parsing with OpenAI
+export async function parseSegmentationPrompt(
   userPrompt: string,
   availableLabels: string[]
 ): Promise<{ labels: string[]; confidence: 'high' | 'medium' | 'low' | 'fallback' }> {
@@ -1306,7 +1306,7 @@ export async function parseExtractionPrompt(
   }
 
   try {
-    const systemPrompt = `You are an AI assistant that helps extract facial features from images.
+    const systemPrompt = `You are an AI assistant that helps segment facial features from images.
 Available feature labels are: ${availableLabels.join(', ')}
 
 Common mappings:
@@ -1317,7 +1317,7 @@ Common mappings:
 - "face" → skin, nose, l_eye, r_eye, l_brow, r_brow, l_ear, r_ear, mouth, u_lip, l_lip
 - "head" → everything including hair
 
-Your task is to parse the user's natural language request and return ONLY the feature labels they want to extract.
+Your task is to parse the user's natural language request and return ONLY the feature labels they want to segment.
 Return your response as a JSON object with this structure:
 {
   "labels": ["label1", "label2", ...],
@@ -1325,7 +1325,7 @@ Return your response as a JSON object with this structure:
 }
 
 Examples:
-Input: "extract the eyes"
+Input: "segment the eyes"
 Output: {"labels": ["l_eye", "r_eye"], "confidence": "high"}
 
 Input: "remove everything except hair"
@@ -1395,7 +1395,7 @@ Be intelligent about understanding variations, synonyms, and context.`;
     };
 
   } catch (error) {
-    console.error('Error parsing extraction prompt with OpenAI:', error);
+    console.error('Error parsing segmentation prompt with OpenAI:', error);
     return { labels: [], confidence: 'fallback' };
   }
 }
