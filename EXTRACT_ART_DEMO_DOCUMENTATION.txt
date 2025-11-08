@@ -1,0 +1,1841 @@
+================================================================================
+                     EXTRACT ART DEMO - FULL PROCESS DOCUMENTATION
+================================================================================
+
+Project Location: C:\Users\Kunal\OneDrive\Desktop\October\SoltcraftAI\extract-art-feature\demo-app
+Development Server: http://localhost:3000
+Last Updated: October 28, 2025
+
+================================================================================
+                            TABLE OF CONTENTS
+================================================================================
+
+1. PROJECT OVERVIEW
+2. TECHNOLOGY STACK
+3. APPLICATION ARCHITECTURE
+4. CORE FEATURES & FUNCTIONALITY
+5. USER WORKFLOW
+6. COMPONENT BREAKDOWN
+7. API INTEGRATIONS
+8. DATA FLOW
+9. INSTALLATION & SETUP
+10. DEVELOPMENT COMMANDS
+11. TESTING WORKFLOW
+12. KEY FILES & DIRECTORIES
+13. TROUBLESHOOTING
+
+================================================================================
+                            1. PROJECT OVERVIEW
+================================================================================
+
+Extract Art Demo is a professional image extraction tool built with React and TypeScript.
+It allows users to upload images and extract specific regions using multiple selection
+methods, AI-powered object detection, and content-aware fill capabilities.
+
+PURPOSE:
+- Demonstrate the Extract Art feature in a standalone, local environment
+- Provide multiple extraction methods (manual and AI-powered)
+- Enable layer-based editing with PSD export
+- Support content-aware fill for gap filling
+
+KEY CAPABILITIES:
+- Manual selection tools (Rectangle, Lasso, Circle, Brush, Eraser)
+- AI-powered object detection and segmentation (Hugging Face)
+- Natural language prompt extraction (OpenAI)
+- Background removal (PhotoRoom)
+- Layer management with visibility controls
+- PSD export with all layers
+- Content-aware fill (Local averaging or DALL-E AI)
+- Undo/Redo functionality
+- Zoom and pan controls
+
+================================================================================
+                            2. TECHNOLOGY STACK
+================================================================================
+
+FRONTEND FRAMEWORK:
+- React 18.3.1 (UI library)
+- TypeScript 5.5.3 (Type safety)
+- Vite 5.4.8 (Build tool & dev server)
+
+UI COMPONENTS:
+- Radix UI (Headless UI components)
+  * @radix-ui/react-dialog - Modal dialogs
+  * @radix-ui/react-slider - Sliders for feather/opacity
+  * @radix-ui/react-tooltip - Tooltips
+  * @radix-ui/react-toast - Notifications
+  * @radix-ui/react-popover - Popovers
+- Lucide React (Icon library)
+
+STYLING:
+- Tailwind CSS 3.4.13 (Utility-first CSS)
+- PostCSS 8.4.47 (CSS processing)
+- class-variance-authority (Component variants)
+- tailwind-merge (Merge Tailwind classes)
+- clsx (Conditional classes)
+
+CANVAS & IMAGE PROCESSING:
+- Konva 9.3.0 (Canvas manipulation library)
+- react-konva 18.2.10 (React wrapper for Konva)
+- ag-psd 28.3.1 (PSD file export)
+- canvas 3.2.0 (Node canvas for server-side rendering)
+
+API & NETWORKING:
+- node-fetch 3.3.2 (HTTP requests)
+- form-data 4.0.4 (Multipart form data)
+- dotenv 17.2.3 (Environment variables)
+
+SERVER (Optional):
+- Express 5.1.0 (Backend server)
+- CORS 2.8.5 (Cross-origin resource sharing)
+
+================================================================================
+                            3. APPLICATION ARCHITECTURE
+================================================================================
+
+APPLICATION STRUCTURE:
+┌─────────────────────────────────────────────────────────────────────┐
+│                           Browser Window                             │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │                         App.tsx                               │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │  Header (Scissors Icon + Title)                         │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │              ExtractArt.tsx (Main Component)            │  │  │
+│  │  │  ┌──────────┐  ┌────────────────┐  ┌──────────────┐    │  │  │
+│  │  │  │  Tools   │  │  KonvaCanvas   │  │    Layers    │    │  │  │
+│  │  │  │  Panel   │  │    (Canvas)    │  │    Panel     │    │  │  │
+│  │  │  │  (Left)  │  │   (Center)     │  │   (Right)    │    │  │  │
+│  │  │  └──────────┘  └────────────────┘  └──────────────┘    │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │                    Toaster (Toast Notifications)        │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+
+COMPONENT HIERARCHY:
+
+App.tsx
+├── Header
+│   ├── Scissors Icon
+│   ├── Title: "Extract Art"
+│   └── Subtitle: "Professional Image Extraction Tool"
+├── ExtractArt.tsx (Main Feature Component)
+│   ├── Upload Area (Drag & Drop / Click to Upload)
+│   ├── Tools Panel (Left Sidebar)
+│   │   ├── Reset Button
+│   │   ├── Detect Regions Button (AI)
+│   │   ├── Selection Mode Buttons
+│   │   │   ├── Hover Preview (Select Mode)
+│   │   │   └── Lasso Selection (Lasso Mode)
+│   │   ├── Edge Feathering Slider (0-50px)
+│   │   ├── Prompt Extraction Section
+│   │   │   ├── Textarea (Natural language input)
+│   │   │   └── Extract Button
+│   │   ├── Content-Aware Fill Section
+│   │   │   ├── Local Fill (Radio button)
+│   │   │   ├── AI Fill - DALL-E (Radio button)
+│   │   │   ├── Auto-prompt Checkbox
+│   │   │   ├── Custom Prompt Textarea
+│   │   │   └── Mask Expand Slider (0-10px)
+│   │   └── Lasso Selection Extract Button
+│   ├── KonvaCanvas.tsx (Canvas Engine)
+│   │   ├── Top Controls Bar
+│   │   │   ├── Undo/Redo Buttons
+│   │   │   ├── Zoom Controls (-/+)
+│   │   │   ├── Help Button
+│   │   │   ├── Export PSD Button
+│   │   │   ├── Save All Layers Button
+│   │   │   └── Content-Aware Fill Button
+│   │   ├── Canvas Area (800x600)
+│   │   │   ├── Base Image Layer
+│   │   │   ├── Detected Region Overlays
+│   │   │   ├── Selection Overlay
+│   │   │   └── Extracted Layers Preview
+│   │   └── Help Panel (Collapsible)
+│   └── Layers Panel (Right Sidebar)
+│       ├── Layer Header (Count + Merge Button)
+│       ├── Extracted Layers (Top to Bottom)
+│       │   ├── Checkbox (Select for merge)
+│       │   ├── Visibility Toggle (Eye Icon)
+│       │   ├── Thumbnail Preview
+│       │   ├── Layer Name
+│       │   ├── Download Button
+│       │   └── Delete Button
+│       └── Base Layer (Always at bottom)
+│           ├── Visibility Toggle
+│           └── Thumbnail
+└── Toaster (Toast Notifications)
+
+================================================================================
+                      4. CORE FEATURES & FUNCTIONALITY
+================================================================================
+
+4.1 SELECTION TOOLS (Manual Extraction)
+----------------------------------------
+
+A. HOVER PREVIEW MODE (Primary AI-Assisted Selection)
+   - How it works:
+     * Click "Detect Regions" button to analyze image
+     * Hover mouse over detected regions
+     * Blue dashed outline appears around hovered region
+     * Label displays at top of canvas
+     * Click to extract the region
+   - Best for: Face features, well-defined objects
+   - Requirements: Hugging Face API key
+   - Model: jonathandinu/face-parsing
+
+B. LASSO SELECTION (Freehand Drawing)
+   - How it works:
+     * Select Lasso tool from left panel
+     * Click and drag to draw freehand selection
+     * Release to complete selection
+     * Click "Extract Selection" button
+   - Features:
+     * Edge feathering (0-50px) for smooth edges
+     * Follows exact path drawn by user
+     * Works on any image without API keys
+   - Best for: Irregular shapes, custom selections
+
+C. ADDITIONAL TOOLS (Available in KonvaCanvas)
+   - Rectangle Selection: Click and drag for rectangular areas
+   - Circle Selection: Click and drag for circular areas
+   - Brush Selection: Paint to select specific pixels
+     * Normal brush
+     * Soft brush (feathered edges)
+     * Stroke brush (outline only)
+   - Eraser Tool: Remove parts of selection
+
+4.2 AI-POWERED FEATURES
+-----------------------
+
+A. OBJECT DETECTION & SEGMENTATION
+   - Provider: Hugging Face Inference API
+   - Model: jonathandinu/face-parsing
+   - Process:
+     1. Upload image
+     2. Click "Detect Regions" button
+     3. API segments image into labeled regions:
+        - skin, nose, l_eye, r_eye, l_brow, r_brow
+        - l_ear, r_ear, mouth, u_lip, l_lip
+        - hair, neck, cloth, background
+     4. Returns pixel-perfect PNG masks for each region
+   - Features:
+     * Pixel-accurate extraction
+     * Pre-generated dashed outlines
+     * Hover preview with labels
+     * Click to extract
+
+B. NATURAL LANGUAGE PROMPT EXTRACTION
+   - Provider: OpenAI GPT (fallback to keyword matching)
+   - Process:
+     1. User types natural language prompt (e.g., "eyes", "face without hair")
+     2. AI parses prompt and maps to detected regions
+     3. Extracts matched regions automatically
+   - Examples:
+     * "eyes" → Extracts l_eye + r_eye
+     * "face" → Extracts all facial features
+     * "everything except background" → Extracts all non-background regions
+   - Fallback: Keyword matching if OpenAI unavailable
+   - Feature Groups:
+     * eyes: [l_eye, r_eye]
+     * eyebrows/brows: [l_brow, r_brow]
+     * ears: [l_ear, r_ear]
+     * lips/mouth: [u_lip, l_lip, mouth]
+     * face: [skin, nose, eyes, brows, ears, mouth]
+     * head: [face + hair]
+
+C. BACKGROUND REMOVAL
+   - Provider: PhotoRoom API
+   - Use case: Automatic background removal
+   - Process:
+     1. Upload image
+     2. Click "Clear BG" button
+     3. PhotoRoom removes background
+     4. Returns image with transparent background
+
+4.3 CONTENT-AWARE FILL
+----------------------
+
+Two modes available:
+
+A. LOCAL FILL (Default - Instant & Free)
+   - Algorithm: Average color calculation
+   - Process:
+     1. Detects transparent pixels in base layer
+     2. Analyzes surrounding opaque pixels
+     3. Calculates average RGB color
+     4. Fills transparent areas with average color
+   - Speed: Instant (client-side)
+   - Cost: Free
+   - Quality: Good for solid color backgrounds
+
+B. AI FILL (DALL-E - Slow & Paid)
+   - Provider: OpenAI DALL-E (via api-dalle-replacement.ts)
+   - Process:
+     1. Detects transparent pixels
+     2. Creates feathered mask
+     3. Expands mask by N pixels (configurable)
+     4. Generates smart prompt based on image type:
+        - Face images: "smooth natural human skin..."
+        - Generic: "natural texture matching surrounding area..."
+     5. Sends to DALL-E for inpainting
+     6. Returns filled image
+   - Settings:
+     * Auto-prompt: AI-generated prompt (recommended)
+     * Custom prompt: User-provided description
+     * Mask expand: 0-10px expansion for better blending
+     * Edge feathering: Uses main feather slider
+   - Speed: ~15-30 seconds
+   - Cost: Paid API calls
+   - Quality: High-quality AI-powered texture matching
+
+4.4 LAYER MANAGEMENT
+--------------------
+
+A. LAYER SYSTEM
+   - Base Layer: Original uploaded image (always at bottom)
+   - Extracted Layers: Each extraction creates a new layer
+   - Layer Properties:
+     * ID: Unique identifier
+     * Name: "Rectangle 1", "Lasso 2", "Skin", etc.
+     * URL: Data URL of extracted image
+     * Thumbnail: Small preview
+     * Visible: Show/hide toggle
+     * Type: Selection method used
+     * Position: x, y, width, height
+
+B. LAYER OPERATIONS
+   - Visibility Toggle: Eye icon to show/hide
+   - Download: Save individual layer as PNG
+   - Delete: Remove layer permanently
+   - Merge: Combine 2+ selected layers into one
+   - Reorder: Drag to change stacking order (in layers panel)
+
+C. LAYER MERGING
+   - Select 2+ layers using checkboxes
+   - Click merge button (Layers icon)
+   - Creates new "Merged Layer N"
+   - Removes original selected layers
+   - Preserves layer order
+
+4.5 HISTORY & UNDO/REDO
+------------------------
+
+- Automatic State Saving:
+  * Before extraction
+  * Before layer deletion
+  * Before content-aware fill
+  * Before merge operations
+
+- Undo: Revert to previous state (Ctrl+Z style)
+- Redo: Restore next state
+- History stored in memory (cleared on page refresh)
+
+4.6 EXPORT OPTIONS
+------------------
+
+A. SAVE ALL LAYERS (PNG)
+   - Downloads all layers as individual PNG files
+   - Filename format: [LayerName]-[Timestamp].png
+   - Transparent background preserved
+
+B. EXPORT PSD
+   - Creates Adobe Photoshop PSD file
+   - Includes:
+     * Base image layer
+     * All extracted layers
+     * Layer names and visibility
+     * Original dimensions
+   - Compatible with Photoshop, GIMP, Photopea
+   - Filename format: extracted-layers-[Timestamp].psd
+
+4.7 ZOOM & PAN
+--------------
+
+- Zoom Controls: -/+ buttons in top bar
+- Zoom Range: 50% to 300%
+- Zoom Increment: 25%
+- Pan: Manual transform (future feature)
+
+================================================================================
+                            5. USER WORKFLOW
+================================================================================
+
+TYPICAL USAGE FLOW:
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                         WORKFLOW DIAGRAM                             │
+└─────────────────────────────────────────────────────────────────────┘
+
+STEP 1: UPLOAD IMAGE
+├── Method A: Drag & drop image onto upload area
+└── Method B: Click upload area and select file
+    ├── Supported formats: PNG, JPG, GIF
+    ├── Toast notification: "Image uploaded successfully"
+    └── Canvas displays image
+
+STEP 2: CHOOSE EXTRACTION METHOD
+
+┌─ METHOD A: AI-POWERED EXTRACTION (Recommended for faces)
+│  ├── Click "Detect Regions" button
+│  ├── Wait for AI segmentation (~2-5 seconds)
+│  ├── Toast: "Found N regions. Use Select tool to extract them."
+│  ├── Hover over detected regions (blue dashed outline appears)
+│  ├── Click region to extract
+│  └── Layer appears in right panel
+│
+├─ METHOD B: PROMPT EXTRACTION (Natural language)
+│  ├── Ensure regions are detected (Step 2A required first)
+│  ├── Type prompt in "Prompt Extraction" textarea
+│  │   Examples: "eyes", "nose and ears", "face without background"
+│  ├── Click "Extract" button
+│  ├── AI parses prompt and extracts matched regions
+│  └── Multiple layers appear in right panel
+│
+└─ METHOD C: MANUAL LASSO SELECTION (For any image)
+   ├── Click Lasso tool button (left panel)
+   ├── Adjust edge feathering slider (5-15px recommended)
+   ├── Draw selection on canvas
+   ├── Release mouse to complete selection
+   ├── Click "Extract Selection" button
+   └── Layer appears in right panel
+
+STEP 3: LAYER MANAGEMENT (Optional)
+├── Toggle layer visibility (eye icon)
+├── Download individual layers (download icon)
+├── Delete unwanted layers (trash icon)
+├── Merge multiple layers:
+│   ├── Check 2+ layers
+│   ├── Click merge button (layers icon)
+│   └── New merged layer created
+└── Adjust base layer visibility
+
+STEP 4: CONTENT-AWARE FILL (Optional - for transparent gaps)
+├── Choose fill method:
+│   ├── Local Fill (instant, free) - default
+│   └── AI Fill (DALL-E, ~15s, paid)
+├── For AI Fill:
+│   ├── Enable/disable auto-prompt
+│   ├── Enter custom prompt if auto-prompt off
+│   └── Adjust mask expand slider
+├── Adjust edge feathering slider (affects smoothness)
+├── Click sparkles button (top bar) or "Content-Aware Fill" button
+├── Wait for processing
+└── Base layer updated with filled gaps
+
+STEP 5: EXPORT RESULTS
+├── Option A: Export PSD
+│   ├── Click PSD button (top bar)
+│   ├── Wait for export (~1-3 seconds)
+│   └── Download extracted-layers-[timestamp].psd
+├── Option B: Save All Layers (PNG)
+│   ├── Click Save button (top bar)
+│   └── All layers download individually
+└── Option C: Download Individual Layers
+    ├── Hover over layer in right panel
+    └── Click download icon
+
+STEP 6: UNDO/REDO (If needed)
+├── Undo: Click undo button (top bar)
+└── Redo: Click redo button (top bar)
+
+================================================================================
+                         6. COMPONENT BREAKDOWN
+================================================================================
+
+6.1 App.tsx (Root Component)
+-----------------------------
+Location: src/App.tsx
+Lines: 32 lines
+Purpose: Application shell with header and main content area
+
+Structure:
+- Header section (border-b, shadow-sm)
+  * Scissors icon in primary-colored box
+  * Title: "Extract Art"
+  * Subtitle: "Professional Image Extraction Tool"
+- Main content area (container, padding)
+  * Renders ExtractArt component
+- Toaster component for notifications
+
+Dependencies:
+- ExtractArt component
+- Toaster component (UI)
+- Scissors icon (lucide-react)
+
+6.2 ExtractArt.tsx (Main Feature Component)
+--------------------------------------------
+Location: src/components/ExtractArt.tsx
+Lines: 1,463 lines
+Purpose: Core extraction feature with all tools and controls
+
+Key State Variables:
+- uploadedImage: string | null - Base image data URL
+- selectionMode: 'select' | 'lasso' - Active tool
+- scale: number - Zoom level (0.5 to 3.0)
+- layers: Layer[] - Extracted layers
+- detectedRegions: DetectedRegion[] - AI-detected regions
+- hoveredRegion: number | null - Currently hovered region index
+- history: HistoryState[] - Undo/redo stack
+- historyIndex: number - Current position in history
+- featherAmount: number - Edge feathering (0-50px)
+- isProcessing: boolean - Loading state
+- bgRemovalPrompt: string - Prompt extraction input
+- contentFillPrompt: string - Content-aware fill prompt
+- useLocalFill: boolean - Local vs AI fill mode
+- autoPrompt: boolean - Auto-generate prompts
+- maskExpandPixels: number - Mask expansion (0-10px)
+- selectedLayerIds: Set<string> - Selected layers for merge
+- baseLayerVisible: boolean - Base layer visibility
+- hasSelection: boolean - Lasso selection active
+- showHelp: boolean - Help panel visibility
+
+Main Functions:
+
+A. FILE HANDLING
+   - handleFileUpload(event): Process uploaded image
+     * Validates file type (image/*)
+     * Reads file as Data URL
+     * Sets uploadedImage state
+     * Shows success toast
+
+B. REGION DETECTION
+   - handleDetectRegions(): Trigger AI segmentation
+     * Converts image to blob
+     * Calls segmentImage() API
+     * Parses response into DetectedRegion[]
+     * Updates detectedRegions state
+     * Shows toast with region count
+
+C. EXTRACTION
+   - handleExtract(dataUrl, type, position): Create new layer
+     * Saves current state to history
+     * Creates Layer object with metadata
+     * Adds to layers array
+     * Shows success toast
+
+   - handleBgRemoval(): Prompt-based extraction
+     * Parses natural language prompt
+     * Tries OpenAI-powered parsing first
+     * Falls back to keyword matching
+     * Dispatches extractRegion events for each match
+     * Shows success toast with extracted features
+
+D. LAYER MANAGEMENT
+   - downloadLayer(layer): Save layer as PNG
+     * Fetches layer data URL
+     * Creates blob and download link
+     * Triggers browser download
+     * Shows success toast
+
+   - deleteLayer(layerId): Remove layer
+     * Saves state to history
+     * Filters out deleted layer
+     * Shows success toast
+
+   - toggleLayerVisibility(layerId): Show/hide layer
+     * Updates layer.visible property
+     * Canvas reflects change immediately
+
+   - toggleLayerSelection(layerId): Select for merge
+     * Adds/removes from selectedLayerIds Set
+     * Used for merge operations
+
+   - mergeLayers(): Combine selected layers
+     * Validates 2+ layers selected
+     * Creates canvas with combined layers
+     * Generates merged layer with "Merged Layer N" name
+     * Removes original layers
+     * Clears selection
+     * Shows success toast
+
+E. CONTENT-AWARE FILL
+   - handleContentAwareFill(): Fill transparent gaps
+     * Checks for transparent pixels
+     * LOCAL MODE:
+       - Calls localContentAwareFill()
+       - Returns instantly with filled image
+     * AI MODE:
+       - Creates improved mask with feathering
+       - Expands mask by maskExpandPixels
+       - Generates smart prompt
+       - Calls contentAwareFill() API with DALL-E
+       - Shows debug data (image, mask, prompt)
+     * Updates uploadedImage with result
+     * Shows success toast
+
+   - generateSmartPrompt(hasFacialFeatures): Create AI prompt
+     * If autoPrompt disabled: returns user prompt
+     * If facial features detected: returns skin texture prompt
+     * Else: returns generic texture prompt
+
+F. HISTORY MANAGEMENT
+   - saveToHistory(): Save current state
+     * Creates HistoryState snapshot
+     * Adds to history array
+     * Updates historyIndex
+
+   - handleUndo(): Revert to previous state
+     * Decrements historyIndex
+     * Restores uploadedImage and layers
+     * Shows undo toast
+
+   - handleRedo(): Restore next state
+     * Increments historyIndex
+     * Restores uploadedImage and layers
+     * Shows redo toast
+
+G. ZOOM CONTROLS
+   - handleZoomIn(): Increase zoom by 25%
+   - handleZoomOut(): Decrease zoom by 25%
+
+H. EXPORT
+   - handleExportPsd(): Create PSD file
+     * Loads base image to get dimensions
+     * Calls exportToPsd() with layers
+     * Downloads PSD with timestamp filename
+     * Shows success toast
+
+   - saveAllLayers(): Download all as PNG
+     * Iterates through layers
+     * Downloads each individually
+     * Shows success toast with count
+
+I. UTILITY
+   - handleReset(): Clear all state
+     * Resets to initial state
+     * Clears image, layers, history
+     * Shows reset toast
+
+   - handleImageUpdate(dataUrl): Update base image
+     * Called after content-aware fill
+     * Updates uploadedImage state
+
+   - handleExtractSelection(): Extract lasso selection
+     * Calls global extractLassoSelection()
+     * Shows success toast
+
+UI Sections:
+
+A. UPLOAD AREA (When no image)
+   - Dashed border drop zone
+   - Upload icon
+   - "Click to upload or drag and drop"
+   - File input (hidden)
+
+B. TOOLS PANEL (Left Sidebar)
+   - Reset button
+   - Detect Regions button (primary when regions detected)
+   - Selection mode toggles (Select / Lasso)
+   - Edge feathering slider (0-50px)
+   - Prompt extraction section
+     * Textarea for natural language
+     * Extract button
+   - Content-aware fill section
+     * Radio buttons (Local / AI)
+     * AI settings (when AI selected)
+       - Auto-prompt checkbox
+       - Custom prompt textarea
+       - Mask expand slider
+     * Info box with details
+   - Lasso selection extract button (when lasso mode active)
+
+C. TOP CONTROLS BAR
+   - Undo/Redo buttons (with disabled states)
+   - Zoom controls (-/+) with percentage display
+   - Help button (toggles help panel)
+   - Export PSD button (disabled when no layers)
+   - Save All Layers button (disabled when no layers)
+   - Content-Aware Fill button (sparkles icon)
+
+D. CANVAS CONTAINER
+   - 800x600px dark gray background
+   - Rounded corners
+   - Overflow auto for panning
+   - Transform applied for zoom
+   - KonvaCanvas component
+   - Hovered region label (floating at top)
+
+E. HELP PANEL (Collapsible)
+   - Blue background
+   - Bullet list of features and usage
+   - Keyboard shortcuts
+   - Tips for best results
+
+F. LAYERS PANEL (Right Sidebar)
+   - Header with layer count
+   - Merge button (disabled unless 2+ selected)
+   - Scrollable layer list
+   - Each layer shows:
+     * Checkbox (for merge)
+     * Visibility toggle (eye icon)
+     * Thumbnail (48x48)
+     * Layer name and type
+     * Download button (on hover)
+     * Delete button (on hover)
+   - Base layer at bottom (blue highlight)
+
+6.3 KonvaCanvas.tsx (Canvas Engine)
+------------------------------------
+Location: src/components/KonvaCanvas.tsx
+Lines: 1,000+ lines (read first 300)
+Purpose: Handles all canvas rendering and interaction
+
+Key Features:
+- Stage/Layer architecture (Konva.js)
+- Image rendering with scaling
+- Detected region mask overlays
+- Hover detection for regions
+- Click handling for extraction
+- Lasso drawing with path tracking
+- Brush/eraser tools
+- Selection transformations
+- Layer compositing
+
+State Variables:
+- lines: BrushLine[] - Drawn brush strokes
+- imageElement: HTMLImageElement - Loaded base image
+- imageSize: { width, height } - Scaled dimensions
+- selection: Selection | null - Active selection data
+- maskImages: Map<number, HTMLImageElement> - Loaded region masks
+- outlineImages: Map<number, HTMLImageElement> - Pre-generated outlines
+- layerImages: Map<string, HTMLImageElement> - Loaded layer images
+
+Effects:
+- Load and scale uploaded image
+- Load mask images for detected regions
+- Pre-generate dashed outlines for hover preview
+- Listen for extractRegion custom events
+- Load layer images for compositing
+
+Functions:
+- handleDrawStart(): Begin drawing/selection
+- handleDrawMove(): Update drawing/selection
+- handleDrawEnd(): Complete drawing/selection
+- extractRegion(): Extract clicked region
+- getImagePosition(): Calculate image offset
+- isPointInImage(): Validate point within bounds
+
+Rendering:
+- Stage (Konva root)
+  * Base image layer (if baseLayerVisible)
+  * Extracted layers (if visible)
+  * Detected region outlines (if in select mode)
+  * Selection overlay (rectangle, lasso, circle)
+  * Brush lines layer
+  * Hovered region highlight
+
+6.4 API Integration (api.ts)
+-----------------------------
+Location: src/lib/api.ts
+Lines: 800+ lines (read first 200)
+Purpose: Handle all external API calls
+
+Configuration:
+- HF_API_URL: Hugging Face Inference API
+- PHOTOROOM_API_URL: PhotoRoom background removal
+- OPENAI_API_KEY: OpenAI GPT for prompt parsing
+
+Models:
+- facebook/detr-resnet-50: Object detection
+- jonathandinu/face-parsing: Face segmentation
+
+Rate Limiting:
+- Max 20 requests per minute
+- Retry with exponential backoff
+- Request window tracking
+- Automatic retry on model loading
+
+Functions:
+
+A. validateApiKeys(): Check API key validity
+   - Validates format (hf_, sk-, length)
+   - Logs validation results
+   - Returns { hf, photoroom, openai }
+
+B. detectObjects(imageBlob): Detect objects in image
+   - Sends to facebook/detr-resnet-50
+   - Returns array of { label, box }
+   - Handles rate limiting
+   - Retries on errors
+
+C. segmentImage(imageBlob): Face parsing segmentation
+   - Sends to jonathandinu/face-parsing
+   - Returns pixel-perfect masks for each region
+   - Format: { masks: [{ label, mask (base64), bounds }] }
+   - Handles model loading delays
+   - Retries on errors
+
+D. parseExtractionPrompt(prompt, availableLabels): Parse natural language
+   - Calls OpenAI GPT to understand prompt
+   - Maps to available region labels
+   - Returns { labels, confidence }
+   - Fallback to keyword matching on error
+
+E. contentAwareFill({ image, mask, prompt, debug }): AI inpainting
+   - Sends to DALL-E for content-aware fill
+   - Takes image blob + mask blob + prompt
+   - Debug mode returns { resultUrl, debugData }
+   - Handles CORS and security errors
+
+F. localContentAwareFill(imageDataUrl): Local color averaging
+   - Client-side processing (no API calls)
+   - Analyzes transparent pixels
+   - Calculates average RGB from surrounding
+   - Fills transparent areas
+   - Returns filled image data URL
+
+G. createImprovedMask({ imageData, featherRadius, expandPixels })
+   - Creates smooth mask from transparency
+   - Applies feathering for soft edges
+   - Expands mask by N pixels
+   - Returns ImageData
+
+H. removeBackground(imageBlob): PhotoRoom API
+   - Sends to PhotoRoom for bg removal
+   - Returns image with transparent background
+   - Handles API errors
+
+Error Handling:
+- Rate limit detection and retry
+- Model loading detection and wait
+- Invalid API key detection with helpful messages
+- CORS error detection with re-upload suggestion
+
+6.5 UI Components (src/components/ui/)
+---------------------------------------
+Pre-built Radix UI components with Tailwind styling:
+
+- button.tsx: Button with variants (default, outline, ghost, etc.)
+- card.tsx: Card container with header, content, footer
+- slider.tsx: Range slider for feather/opacity
+- textarea.tsx: Multi-line text input
+- toast.tsx: Toast notification system
+- tooltip.tsx: Hover tooltips
+- dialog.tsx: Modal dialogs
+- popover.tsx: Floating popovers
+- label.tsx: Form labels
+
+All components use:
+- Tailwind classes for styling
+- class-variance-authority for variants
+- Radix UI primitives for accessibility
+
+6.6 Utility Libraries
+---------------------
+
+A. artStyles.ts (Art style definitions)
+   - 13 built-in art styles
+   - Style properties: prefix, suffix, negativePrompt
+   - enhancePromptWithStyle() function
+   - Ornamental detection
+
+B. psdExport.ts (PSD file creation)
+   - exportToPsd(): Create PSD from layers
+   - downloadPsd(): Trigger browser download
+   - Uses ag-psd library
+
+C. utils.ts (Utility functions)
+   - cn(): Merge Tailwind classes
+   - Uses clsx + tailwind-merge
+
+D. use-toast.ts (Toast hook)
+   - useToast() hook
+   - toast() function for notifications
+   - Manages toast state
+
+================================================================================
+                          7. API INTEGRATIONS
+================================================================================
+
+7.1 HUGGING FACE INFERENCE API
+-------------------------------
+
+Endpoint: https://api-inference.huggingface.co/models
+API Key: VITE_HUGGING_FACE_API_KEY (environment variable)
+Key Format: hf_XXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+Models Used:
+
+A. facebook/detr-resnet-50 (Object Detection)
+   - Purpose: Detect general objects in images
+   - Input: Image blob (binary)
+   - Output: Array of detections
+     {
+       label: string,
+       box: { xmin, ymin, xmax, ymax }
+     }
+   - Use case: Detect objects for removal/extraction
+
+B. jonathandinu/face-parsing (Segmentation)
+   - Purpose: Pixel-perfect face segmentation
+   - Input: Image blob (binary)
+   - Output: Segmentation masks
+     {
+       masks: [
+         {
+           label: string,  // e.g., "skin", "nose", "l_eye"
+           mask: string,   // base64 PNG image
+           bounds: { xmin, ymin, xmax, ymax }
+         }
+       ]
+     }
+   - Supported labels:
+     * background (0)
+     * skin (1)
+     * nose (2)
+     * l_eye (3), r_eye (4)
+     * l_brow (5), r_brow (6)
+     * l_ear (7), r_ear (8)
+     * mouth (9)
+     * u_lip (10), l_lip (11)
+     * hair (12)
+     * neck (13)
+     * cloth (14)
+
+Rate Limits:
+- 20 requests per minute (client-side limit)
+- Automatic retry on rate limit exceeded
+- Request window tracking (60 seconds)
+
+Error Handling:
+- Model loading: Retry after delay
+- Rate limit: Wait and retry
+- Invalid token: Clear error message with instructions
+- Service unavailable: Retry with backoff
+
+7.2 OPENAI API (GPT for Prompt Parsing)
+----------------------------------------
+
+Endpoint: https://api.openai.com/v1/chat/completions
+API Key: VITE_OPENAI_API_KEY
+Key Format: sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+Model: GPT-3.5-turbo or GPT-4
+
+Purpose: Parse natural language extraction prompts
+
+Example Request:
+{
+  model: "gpt-3.5-turbo",
+  messages: [
+    {
+      role: "system",
+      content: "You are an AI that maps user requests to face part labels..."
+    },
+    {
+      role: "user",
+      content: "Available labels: skin, nose, l_eye, r_eye... User request: extract the eyes"
+    }
+  ]
+}
+
+Example Response:
+{
+  choices: [
+    {
+      message: {
+        content: {
+          labels: ["l_eye", "r_eye"],
+          confidence: "high"
+        }
+      }
+    }
+  ]
+}
+
+Fallback: If OpenAI fails, uses keyword matching with FEATURE_GROUPS
+
+7.3 OPENAI DALL-E API (Content-Aware Fill)
+-------------------------------------------
+
+Endpoint: https://api.openai.com/v1/images/edits
+API Key: VITE_OPENAI_API_KEY
+Model: DALL-E 2
+
+Purpose: AI-powered inpainting for gap filling
+
+Input:
+- image: PNG blob (original image)
+- mask: PNG blob (white = fill, black = keep)
+- prompt: Text description of what to fill
+- n: 1 (number of images)
+- size: "1024x1024" or original size
+
+Example Prompt (Auto-generated):
+"smooth natural human skin, realistic skin texture, natural skin tone, seamless"
+
+Output:
+- URL to generated image
+- Downloaded and converted to data URL
+
+Debug Mode:
+- Returns input image, mask, and prompt for inspection
+- Helpful for troubleshooting DALL-E results
+
+Cost: ~$0.02 per image generation
+
+7.4 PHOTOROOM API (Background Removal)
+---------------------------------------
+
+Endpoint: https://sdk.photoroom.com/v1/segment
+API Key: VITE_PHOTOROOM_API_KEY
+
+Purpose: Automatic background removal
+
+Input:
+- image: Image blob
+- format: "png"
+
+Output:
+- PNG image with transparent background
+
+Use case: Quick background removal without manual selection
+
+================================================================================
+                             8. DATA FLOW
+================================================================================
+
+8.1 IMAGE UPLOAD FLOW
+---------------------
+
+User Action → File Input → FileReader → Data URL → State Update → Canvas Render
+
+[User clicks/drops file]
+       ↓
+[handleFileUpload triggered]
+       ↓
+[File validation (image/* check)]
+       ↓
+[FileReader.readAsDataURL(file)]
+       ↓
+[Data URL created (base64)]
+       ↓
+[setUploadedImage(dataUrl)]
+       ↓
+[useEffect in KonvaCanvas detects image change]
+       ↓
+[Create HTMLImageElement]
+       ↓
+[Calculate scaled dimensions]
+       ↓
+[setImageElement + setImageSize]
+       ↓
+[Konva renders image on canvas]
+
+8.2 AI REGION DETECTION FLOW
+-----------------------------
+
+Button Click → API Call → Parse Response → Render Masks → Hover Preview
+
+[User clicks "Detect Regions"]
+       ↓
+[handleDetectRegions() called]
+       ↓
+[Convert image to blob]
+       ↓
+[Call segmentImage(blob)]
+       ↓
+[API: POST to Hugging Face face-parsing model]
+       ↓
+[Response: Array of {label, mask (base64), bounds}]
+       ↓
+[setDetectedRegions(regions)]
+       ↓
+[useEffect loads mask images]
+       ↓
+[Pre-generate dashed outline images]
+       ↓
+[setMaskImages + setOutlineImages]
+       ↓
+[User hovers over canvas]
+       ↓
+[handleMouseMove detects pixel under cursor]
+       ↓
+[Check mask pixel alpha value]
+       ↓
+[If alpha > threshold: setHoveredRegion(index)]
+       ↓
+[Render outline + label overlay]
+
+8.3 EXTRACTION FLOW
+-------------------
+
+Click Region → Create Layer → Update State → Render
+
+[User clicks detected region]
+       ↓
+[handleDrawStart in KonvaCanvas]
+       ↓
+[extractRegion(hoveredRegion) called]
+       ↓
+[Create canvas for extraction]
+       ↓
+[Draw base image to canvas]
+       ↓
+[Apply mask as globalCompositeOperation]
+       ↓
+[Apply feathering if configured]
+       ↓
+[Generate data URL]
+       ↓
+[Call onExtract(dataUrl, type, position)]
+       ↓
+[handleExtract in ExtractArt]
+       ↓
+[saveToHistory() - Save current state]
+       ↓
+[Create Layer object]
+       ↓
+[Add to layers array]
+       ↓
+[useEffect loads layer image]
+       ↓
+[setLayerImages updated]
+       ↓
+[Konva renders layer on canvas]
+       ↓
+[Layer appears in right panel]
+
+8.4 PROMPT EXTRACTION FLOW
+---------------------------
+
+Text Input → AI Parsing → Match Regions → Extract Multiple
+
+[User types prompt: "eyes"]
+       ↓
+[User clicks "Extract" button]
+       ↓
+[handleBgRemoval() called]
+       ↓
+[Call parseExtractionPrompt(prompt, availableLabels)]
+       ↓
+[API: POST to OpenAI GPT]
+       ↓
+[GPT parses prompt: "eyes" → ["l_eye", "r_eye"]]
+       ↓
+[If OpenAI fails: Fallback to keyword matching]
+       ↓
+[Match regions from detectedRegions]
+       ↓
+[For each matched region:]
+       ↓
+[Dispatch 'extractRegion' custom event]
+       ↓
+[extractRegion(index) called]
+       ↓
+[Layer created for each region]
+       ↓
+[Toast: "Extracted 2 feature(s): l eye, r eye"]
+
+8.5 CONTENT-AWARE FILL FLOW
+----------------------------
+
+TWO PATHS:
+
+A. LOCAL FILL (Instant):
+[User clicks sparkles button]
+       ↓
+[handleContentAwareFill() called]
+       ↓
+[useLocalFill === true]
+       ↓
+[Call localContentAwareFill(uploadedImage)]
+       ↓
+[Client-side processing:]
+       ↓
+[Create canvas from image]
+       ↓
+[Get pixel data]
+       ↓
+[Find transparent pixels]
+       ↓
+[For each transparent pixel:]
+       ↓
+[Analyze surrounding opaque pixels]
+       ↓
+[Calculate average RGB]
+       ↓
+[Fill pixel with average color]
+       ↓
+[Generate new data URL]
+       ↓
+[saveToHistory()]
+       ↓
+[setUploadedImage(filledImageUrl)]
+       ↓
+[Toast: "Success! Gaps filled..."]
+
+B. AI FILL (DALL-E):
+[User clicks sparkles button]
+       ↓
+[handleContentAwareFill() called]
+       ↓
+[useLocalFill === false]
+       ↓
+[Load image to canvas]
+       ↓
+[Get pixel data]
+       ↓
+[Detect transparent pixels]
+       ↓
+[Create improved mask with feathering]
+       ↓
+[Expand mask by maskExpandPixels]
+       ↓
+[Generate smart prompt]
+       ↓
+[Convert image + mask to blobs]
+       ↓
+[Call contentAwareFill({ image, mask, prompt, debug: true })]
+       ↓
+[API: POST to OpenAI DALL-E edits endpoint]
+       ↓
+[DALL-E inpaints masked regions]
+       ↓
+[Response: Generated image URL]
+       ↓
+[Download and convert to data URL]
+       ↓
+[Store debug data for inspection]
+       ↓
+[saveToHistory()]
+       ↓
+[setUploadedImage(filledImageUrl)]
+       ↓
+[setDalleDebugData(debugData)]
+       ↓
+[Toast: "Success - AI Fill Complete!"]
+
+8.6 LAYER MERGE FLOW
+--------------------
+
+Select Layers → Merge → Replace with Single Layer
+
+[User checks 2+ layer checkboxes]
+       ↓
+[selectedLayerIds Set updated]
+       ↓
+[User clicks merge button]
+       ↓
+[mergeLayers() called]
+       ↓
+[Validate 2+ layers selected]
+       ↓
+[saveToHistory()]
+       ↓
+[Filter selectedLayers from layers array]
+       ↓
+[Create canvas with first layer dimensions]
+       ↓
+[Load each selected layer image]
+       ↓
+[Draw each layer to canvas (stacked)]
+       ↓
+[Generate merged data URL]
+       ↓
+[Create new "Merged Layer N"]
+       ↓
+[Remove original selected layers]
+       ↓
+[Add merged layer to array]
+       ↓
+[Clear selectedLayerIds]
+       ↓
+[Toast: "Merged 3 layers into one"]
+
+8.7 PSD EXPORT FLOW
+-------------------
+
+Export Request → Build PSD → Download
+
+[User clicks PSD button]
+       ↓
+[handleExportPsd() called]
+       ↓
+[Load base image for dimensions]
+       ↓
+[Call exportToPsd(uploadedImage, layers, width, height)]
+       ↓
+[ag-psd library builds PSD structure:]
+       ↓
+[PSD Document creation]
+       ↓
+[Add base layer]
+       ↓
+[For each extracted layer:]
+       ↓
+[Load image as canvas]
+       ↓
+[Get pixel data]
+       ↓
+[Add layer to PSD with name + opacity]
+       ↓
+[writePsd() generates buffer]
+       ↓
+[Call downloadPsd(buffer, filename)]
+       ↓
+[Create blob from buffer]
+       ↓
+[Create download link]
+       ↓
+[Trigger browser download]
+       ↓
+[Toast: "PSD file exported with N layers"]
+
+================================================================================
+                        9. INSTALLATION & SETUP
+================================================================================
+
+9.1 PREREQUISITES
+-----------------
+- Node.js 16+ (recommended: 18 or 20)
+- npm 8+ (comes with Node.js)
+- Modern web browser (Chrome, Firefox, Edge, Safari)
+- Git (optional, for version control)
+
+9.2 INITIAL SETUP
+-----------------
+
+STEP 1: Navigate to project directory
+cd C:\Users\Kunal\OneDrive\Desktop\October\SoltcraftAI\extract-art-feature\demo-app
+
+STEP 2: Install dependencies
+npm install
+
+This installs all required packages (~200MB):
+- React, TypeScript, Vite
+- Radix UI components
+- Konva for canvas
+- ag-psd for PSD export
+- And all other dependencies from package.json
+
+Installation time: ~30-40 seconds (depends on internet speed)
+
+STEP 3: Configure API keys (optional)
+
+Create .env file:
+VITE_HUGGING_FACE_API_KEY=hf_your_key_here
+VITE_PHOTOROOM_API_KEY=your_key_here
+VITE_OPENAI_API_KEY=sk-your_key_here
+
+Note: App works without API keys, but AI features will be disabled.
+
+To get API keys:
+- Hugging Face: https://huggingface.co/settings/tokens
+  * Create token with "Read" access
+  * Used for object detection and face segmentation
+
+- PhotoRoom: https://www.photoroom.com/api
+  * Sign up for API access
+  * Used for background removal
+
+- OpenAI: https://platform.openai.com/api-keys
+  * Create API key
+  * Used for prompt parsing and DALL-E inpainting
+
+9.3 DIRECTORY STRUCTURE
+-----------------------
+
+demo-app/
+├── dist/                     # Production build output (created by npm run build)
+├── node_modules/             # Installed dependencies (created by npm install)
+├── public/                   # Static assets
+├── src/                      # Source code
+│   ├── components/           # React components
+│   │   ├── ui/              # Reusable UI components (Radix)
+│   │   │   ├── button.tsx
+│   │   │   ├── card.tsx
+│   │   │   ├── slider.tsx
+│   │   │   ├── toast.tsx
+│   │   │   └── ...
+│   │   ├── ExtractArt.tsx   # Main feature component
+│   │   ├── KonvaCanvas.tsx  # Canvas engine
+│   │   └── LayerPanel.tsx   # Layer management
+│   ├── hooks/               # Custom React hooks
+│   │   └── use-toast.ts     # Toast notification hook
+│   ├── lib/                 # Utility libraries
+│   │   ├── api.ts           # API integration
+│   │   ├── artStyles.ts     # Art style definitions
+│   │   ├── psdExport.ts     # PSD export logic
+│   │   ├── utils.ts         # Utility functions
+│   │   └── api-dalle-replacement.ts  # DALL-E integration
+│   ├── types/               # TypeScript type definitions
+│   │   └── layer.ts
+│   ├── App.tsx              # Root component
+│   ├── main.tsx             # Application entry point
+│   ├── index.css            # Global styles
+│   └── vite-env.d.ts        # Vite type definitions
+├── .env                      # Environment variables (create this)
+├── .env.example              # Example environment file
+├── index.html               # HTML entry point
+├── package.json             # Dependencies and scripts
+├── tsconfig.json            # TypeScript configuration
+├── tsconfig.node.json       # TypeScript config for Node
+├── vite.config.ts           # Vite build configuration
+├── tailwind.config.js       # Tailwind CSS configuration
+├── postcss.config.js        # PostCSS configuration
+├── README.md                # Project readme
+├── START_HERE.md            # Quick start guide
+└── LOCALHOST_GUIDE.md       # Local development guide
+
+================================================================================
+                       10. DEVELOPMENT COMMANDS
+================================================================================
+
+10.1 START DEVELOPMENT SERVER
+------------------------------
+Command: npm run dev
+
+What it does:
+- Starts Vite development server
+- Enables Hot Module Replacement (HMR)
+- Opens http://localhost:3000
+- Watches for file changes
+- Automatically recompiles on save
+
+Output:
+  VITE v5.4.20  ready in 906 ms
+
+  ➜  Local:   http://localhost:3000/
+  ➜  Network: use --host to expose
+
+How to stop: Press Ctrl+C in terminal
+
+10.2 BUILD FOR PRODUCTION
+--------------------------
+Command: npm run build
+
+What it does:
+- Runs TypeScript compiler (tsc)
+- Bundles with Vite
+- Minifies JavaScript/CSS
+- Optimizes assets
+- Outputs to dist/ directory
+
+Output structure:
+dist/
+├── assets/
+│   ├── index-[hash].js      # Main JavaScript bundle
+│   ├── index-[hash].css     # Main CSS bundle
+│   └── [images/fonts]       # Optimized assets
+└── index.html               # Optimized HTML
+
+Build time: ~10-20 seconds
+
+10.3 PREVIEW PRODUCTION BUILD
+------------------------------
+Command: npm run preview
+
+What it does:
+- Serves the dist/ directory
+- Simulates production environment
+- Opens http://localhost:4173
+
+Use case: Test production build locally before deployment
+
+10.4 CLEAN INSTALL
+------------------
+Commands:
+rm -rf node_modules package-lock.json
+npm install
+
+When to use:
+- Dependency conflicts
+- Corrupted installations
+- After updating package.json
+
+10.5 UPDATE DEPENDENCIES
+------------------------
+Commands:
+npm outdated              # Check for updates
+npm update               # Update minor/patch versions
+npm install <package>@latest  # Update specific package
+
+================================================================================
+                        11. TESTING WORKFLOW
+================================================================================
+
+11.1 MANUAL TESTING CHECKLIST
+------------------------------
+
+A. BASIC FUNCTIONALITY
+   ☐ Upload image (drag & drop)
+   ☐ Upload image (click to browse)
+   ☐ Image displays correctly on canvas
+   ☐ Canvas scales image to fit
+   ☐ Reset button clears everything
+
+B. SELECTION TOOLS
+   ☐ Lasso tool draws smooth path
+   ☐ Lasso selection can be extracted
+   ☐ Edge feathering works (0-50px)
+   ☐ Rectangle selection works
+   ☐ Circle selection works
+   ☐ Brush tools paint correctly
+   ☐ Eraser removes painted areas
+
+C. AI FEATURES (Requires API keys)
+   ☐ "Detect Regions" finds face parts
+   ☐ Hover preview shows blue outline
+   ☐ Hover label displays correctly
+   ☐ Click region extracts correctly
+   ☐ Prompt extraction understands "eyes"
+   ☐ Prompt extraction understands "face"
+   ☐ Prompt extraction understands complex prompts
+   ☐ OpenAI fallback works (keyword matching)
+
+D. LAYER MANAGEMENT
+   ☐ Extracted layers appear in panel
+   ☐ Layer visibility toggle works
+   ☐ Layer thumbnails display
+   ☐ Download individual layer (PNG)
+   ☐ Delete layer works
+   ☐ Merge 2+ layers works
+   ☐ Merged layer shows correct content
+   ☐ Base layer visibility toggle works
+
+E. CONTENT-AWARE FILL
+   ☐ Local fill fills gaps instantly
+   ☐ Local fill uses average color
+   ☐ AI fill button shows loading state
+   ☐ AI fill fills gaps with DALL-E
+   ☐ Auto-prompt generates correct prompt
+   ☐ Custom prompt works
+   ☐ Mask expansion slider works
+   ☐ Debug panel shows input/mask/prompt
+
+F. HISTORY & UNDO
+   ☐ Undo reverts last action
+   ☐ Redo restores next action
+   ☐ Undo disabled when no history
+   ☐ Redo disabled at end of history
+   ☐ History saves before extraction
+   ☐ History saves before deletion
+
+G. EXPORT
+   ☐ Export PSD downloads correctly
+   ☐ PSD opens in Photoshop/GIMP
+   ☐ PSD has all layers with names
+   ☐ Save All downloads all layers
+   ☐ PNG files have transparent backgrounds
+
+H. ZOOM & NAVIGATION
+   ☐ Zoom in increases scale
+   ☐ Zoom out decreases scale
+   ☐ Zoom percentage displays correctly
+   ☐ Canvas remains functional when zoomed
+
+I. ERROR HANDLING
+   ☐ Invalid file type shows error
+   ☐ No API keys shows helpful message
+   ☐ Rate limit shows waiting message
+   ☐ Network error shows error toast
+   ☐ CORS error suggests re-upload
+
+11.2 BROWSER COMPATIBILITY
+---------------------------
+
+Recommended: Chrome/Edge (best performance)
+
+Chrome:
+- ✅ Full support
+- ✅ Canvas rendering excellent
+- ✅ All features work
+
+Firefox:
+- ✅ Full support
+- ⚠️ Slightly slower canvas rendering
+- ✅ All features work
+
+Safari:
+- ✅ Mostly works
+- ⚠️ Some Konva performance issues
+- ⚠️ May need polyfills for older versions
+
+Edge:
+- ✅ Full support (Chromium-based)
+- ✅ Same as Chrome
+
+11.3 PERFORMANCE TESTING
+------------------------
+
+Test with different image sizes:
+- Small (500x500): Should be instant
+- Medium (1920x1080): Should be smooth
+- Large (4K+): May lag, test zoom/pan
+
+Monitor:
+- Page load time: < 3 seconds
+- Image upload: < 1 second
+- AI detection: 2-5 seconds
+- Layer extraction: < 500ms
+- PSD export: 1-3 seconds
+
+11.4 API TESTING
+----------------
+
+Test with:
+- Valid API keys: All features work
+- Invalid API keys: Error messages shown
+- No API keys: Manual tools still work
+- Rate limiting: Automatic retry
+- Model loading: Wait and retry
+
+================================================================================
+                      12. KEY FILES & DIRECTORIES
+================================================================================
+
+12.1 CONFIGURATION FILES
+------------------------
+
+package.json (Dependency Management)
+- Dependencies: Production packages
+- DevDependencies: Development-only packages
+- Scripts: npm commands (dev, build, preview)
+- Type: "module" (ESM support)
+
+vite.config.ts (Build Configuration)
+- Plugins: React plugin
+- Path aliases: @ → src/
+- Server config: Port 3000
+- Build optimization settings
+
+tsconfig.json (TypeScript Configuration)
+- Compiler options: ESNext target, strict mode
+- Path mapping: @/* to src/*
+- Include: src/**/*
+- Module: ESNext
+
+tailwind.config.js (Tailwind CSS Configuration)
+- Content paths: src/**/*.{ts,tsx}
+- Theme extensions: colors, animations
+- Plugins: Custom utilities
+
+postcss.config.js (CSS Processing)
+- Tailwind CSS plugin
+- Autoprefixer for browser compatibility
+
+.env (Environment Variables)
+- VITE_HUGGING_FACE_API_KEY
+- VITE_PHOTOROOM_API_KEY
+- VITE_OPENAI_API_KEY
+- Not tracked in Git (add to .gitignore)
+
+12.2 CORE SOURCE FILES
+----------------------
+
+src/main.tsx (Entry Point)
+- Imports React, ReactDOM
+- Renders <App /> to #root
+- Imports global styles (index.css)
+
+src/App.tsx (Root Component)
+- Header with branding
+- Main content area
+- Toaster for notifications
+
+src/components/ExtractArt.tsx (Main Feature)
+- 1,463 lines
+- All extraction logic
+- Layer management
+- Content-aware fill
+- State management
+
+src/components/KonvaCanvas.tsx (Canvas Engine)
+- Konva Stage/Layer setup
+- Drawing/selection tools
+- Region detection rendering
+- Mask overlay rendering
+
+src/lib/api.ts (API Integration)
+- Hugging Face API calls
+- OpenAI API calls
+- PhotoRoom API calls
+- Rate limiting logic
+- Error handling
+
+src/lib/psdExport.ts (PSD Export)
+- exportToPsd(): Build PSD structure
+- downloadPsd(): Trigger download
+- Uses ag-psd library
+
+src/index.css (Global Styles)
+- Tailwind directives
+- Custom CSS variables
+- Global resets
+
+12.3 DOCUMENTATION FILES
+------------------------
+
+README.md (Project Overview)
+- Feature list
+- Quick start guide
+- Testing workflow
+- Troubleshooting
+
+START_HERE.md (Quick Start)
+- 4-step setup process
+- What you'll see
+- Try these features
+- Troubleshooting
+
+LOCALHOST_GUIDE.md (Detailed Setup)
+- Installation steps
+- API key configuration
+- Feature descriptions
+
+ACCESS_YOUR_DEMO.md (Access Instructions)
+- How to open in browser
+- URL information
+
+================================================================================
+                         13. TROUBLESHOOTING
+================================================================================
+
+13.1 COMMON ISSUES & SOLUTIONS
+-------------------------------
+
+ISSUE: "Port 3000 already in use"
+SOLUTION:
+- Option A: Stop other apps using port 3000
+- Option B: Edit vite.config.ts and change port:
+  server: {
+    port: 3001,  // Change to any available port
+  }
+
+ISSUE: "Module not found" errors after install
+SOLUTION:
+- Delete node_modules folder
+- Delete package-lock.json
+- Run: npm install
+
+ISSUE: AI features not working
+SOLUTION:
+- Check .env file exists
+- Verify API keys start with correct prefix:
+  * Hugging Face: hf_
+  * OpenAI: sk-
+- Check API keys are not placeholder values
+- Verify keys have required permissions
+
+ISSUE: Canvas not rendering image
+SOLUTION:
+- Check browser console for errors
+- Try different image format (PNG instead of JPG)
+- Clear browser cache
+- Try different browser (Chrome recommended)
+
+ISSUE: "Cannot access image pixels" error
+SOLUTION:
+- This is a CORS error
+- Download the current image
+- Re-upload it to continue editing
+- Happens after content-aware fill with external images
+
+ISSUE: Region detection finds nothing
+SOLUTION:
+- Ensure image contains a human face
+- Face parsing model is optimized for faces
+- Try manual selection tools instead
+
+ISSUE: Prompt extraction doesn't understand request
+SOLUTION:
+- Use simpler terms: "eyes" instead of "the eyes"
+- Try direct labels: "l_eye r_eye" instead of "both eyes"
+- Check detected regions list in console
+- Use exact label names if needed
+
+ISSUE: Content-aware fill fails with DALL-E
+SOLUTION:
+- Check OpenAI API key is valid
+- Ensure you have API credits
+- Try Local Fill mode instead (free, instant)
+- Check mask expand is not too large (max 10px)
+
+ISSUE: PSD export fails
+SOLUTION:
+- Check at least one layer exists
+- Verify layers loaded completely
+- Try exporting with fewer layers
+- Check browser console for errors
+
+ISSUE: Merge layers button disabled
+SOLUTION:
+- Select 2 or more layers (checkboxes)
+- Ensure selected layers are visible
+- Wait for layer images to load
+
+ISSUE: Slow performance with large images
+SOLUTION:
+- Resize image before upload (max 2048x2048)
+- Use PNG instead of large JPG
+- Close other browser tabs
+- Try Local Fill instead of AI Fill
+
+13.2 BROWSER CONSOLE DEBUGGING
+-------------------------------
+
+To open browser console:
+- Chrome/Edge: F12 or Ctrl+Shift+I
+- Firefox: F12 or Ctrl+Shift+K
+- Safari: Cmd+Option+I
+
+What to look for:
+- Red errors: Check error message
+- Network errors: Check API calls
+- CORS errors: Re-upload image
+- 401/403: API key invalid
+- 429: Rate limit exceeded
+- 503: Model loading, wait and retry
+
+13.3 API KEY VALIDATION
+-----------------------
+
+App validates keys on load and logs to console:
+
+API Key Validation: {
+  hf: 'Valid' or 'Invalid/Missing',
+  hfKey: 'hf_XXXXX...',
+  photoroom: 'Valid' or 'Invalid/Missing',
+  openai: 'Valid' or 'Invalid/Missing'
+}
+
+If keys show as Invalid:
+- Check .env file format
+- Remove quotes around keys
+- Ensure no extra spaces
+- Restart dev server after editing .env
+
+13.4 GETTING HELP
+-----------------
+
+1. Check browser console for errors
+2. Review this documentation
+3. Check README.md and START_HERE.md
+4. Search GitHub issues (if available)
+5. Contact developer with:
+   - Browser and version
+   - Steps to reproduce
+   - Console error messages
+   - Screenshots if applicable
+
+================================================================================
+                             END OF DOCUMENTATION
+================================================================================
+
+Document created: October 28, 2025
+Development server running: http://localhost:3000
+Project location: C:\Users\Kunal\OneDrive\Desktop\October\SoltcraftAI\extract-art-feature\demo-app
+
+This documentation covers the complete Extract Art Demo application, including
+architecture, features, workflow, components, APIs, setup, testing, and
+troubleshooting. Keep this file for reference during development and deployment.
+
+For the latest updates, see:
+- README.md (project overview)
+- CHANGELOG.md (change history)
+- GitHub repository (if available)
